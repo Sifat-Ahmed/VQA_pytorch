@@ -1,7 +1,7 @@
 import codecs
 import os
 import numpy as np
-
+from tqdm import tqdm
 
 def process_sentence(sentence : str) -> str:
     punct = [';', r"/", '[', ']', '"', '{', '}',
@@ -45,13 +45,14 @@ def load_glove_model(glove_file_path):
         raise("Glove vector file not found")
 
     f = codecs.open(glove_file_path, 'r', encoding='utf-8')
-    print('f:  ',f)
+    #print('f:  ',f)
     model = {}
-    for line in f:
+    for line in tqdm(f, leave = True, position = 0, desc="Loading bengali glove"):
         split_line = line.split()
         word = split_line[0]
         embedding = np.array([float(val) for val in split_line[1:]])
         model[word] = embedding
+    f.close()
     return model
 
 
@@ -61,10 +62,10 @@ def load_bangla_word2vec(bangla_vec_path):
 
     f = open(bangla_vec_path,'r')
     w2v_100d={}
-    for i in f:
+    for i in tqdm(f, leave = True, position = 0, desc="Loading bengali word2vec"):
         lst=i.split()
         word=lst[0]
         word_vec=np.array(lst[1:101], dtype='float32')
         w2v_100d[word]=word_vec
-
+    f.close()
     return w2v_100d

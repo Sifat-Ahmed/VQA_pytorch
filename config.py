@@ -10,7 +10,7 @@ class Config:
         
         self.batch_size = 96
         self.epochs = 500
-        
+        self.shuffle = True
         self.resize = True
         self.image_size = (448, 448)
 
@@ -28,6 +28,8 @@ class Config:
         
         ## Dataset
         self.number_of_data = 10000
+        self.validation_size = 0.1
+        self.test_size = 0.1
         
         ## All paths 
         

@@ -9,7 +9,7 @@ class ParseJson:
         #self._json_path = json_path
         self._cfg = cfg
         
-    def parse_json(self, encoding = 'utf-8-sig'):
+    def get_ques_im_ans(self, encoding = 'utf-8-sig'):
         
         if not os.path.isfile(self._cfg.json_path):
             raise("JSON file not found")
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     cfg = config.Config()
     jp = ParseJson(cfg)
 
-    q, i, a = jp.parse_json(r'/home/workstaion/workspace/potatochips/vqa/Dataset/train/VQA_Data/yes_no_data.json')
+    q, i, a = jp.get_ques_im_ans()
 
     print(q[:5])
     print(a[:5])

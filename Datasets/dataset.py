@@ -3,16 +3,17 @@ from torchtext.legacy.data import Field, TabularDataset, BucketIterator
 from torchtext.vocab import Vectors, GloVe
 import helper.preprocessing
 import cv2, os
+import torch
+from torch.utils.data import Dataset
 
-
-class LoadDataset:
+class LoadDataset(Dataset):
     def __init__(self, cfg, text, image, label, mode) -> None:
 
         self._cfg = cfg
         self._text = text
         self._image = image
         self._label = label
-        self._mode = mode.tolower()
+        self._mode = mode
         
         assert len(self._text) == len(self._image) and len(self._image) == len(self._label), "number of text, image and labels are not same"
         assert self._mode == "train" or self._mode == "test", "The value of mode is not correct (train/test)"
@@ -33,8 +34,7 @@ class LoadDataset:
         if self._cfg.transform:
             image = self._cfg.transform(image=image)["image"]
 
-        return text, image, label
-        
-            
-        
+        return torch.tensor(text, dtype=torch.float32), \
+               image, \
+               torch.tensor(label, dtype=torch.float32)
     

@@ -1,11 +1,11 @@
-from .preprocessing import process_answer, process_sentence
+from .preprocessing import process_answer, process_sentence, load_glove_model
 from bnlp import BasicTokenizer
 from collections import defaultdict
-import numpy as np
+from tqdm import tqdm
 
 
 class Vocabulary:
-    def __init__(self, maxlen = 3, min_frequency = 3, padding = "post"):
+    def __init__(self, maxlen = 30, min_frequency = 3, padding = "post"):
         self._maxlen = maxlen
         self._min_frequency = min_frequency
         self._tokenizer = BasicTokenizer()
@@ -39,17 +39,31 @@ class Vocabulary:
     def _transform_to_sequence(self, text):
         sequence = list()
         for word in self._tokenize(text):
-            sequence.append(self._vocabulary[word])
+            if self._vector:
+                try:
+                    sequence.append(list(self._vector[word]))
+                except:
+                    pass
+                finally:
+                    sequence.append(list([0.0] * 300))
+            else:
+                sequence.append(self._vocabulary[word])
 
         return sequence
 
-    def build(self, text_data):
+
+    def transform(self):
+        pass
+
+    def get_sequences(self, text_data, vector = None):
         self._text_data = text_data
         self._build_vocab()
         self._sequences = list()
+        self._vector = vector
 
-        for data in self._text_data:
-            padded = np.zeros(self._maxlen)
+
+        for data in tqdm(self._text_data, leave=True, position=0, colour = "blue", desc="Converting text to sequence"):
+            padded = [0.0] * self._maxlen
             seq = self._transform_to_sequence(data)
 
             if self._padding == "pre":
@@ -68,8 +82,13 @@ class Vocabulary:
 
 
 if __name__ == "__main__":
-    test = ["I eat rice", "I like to eat rice", "Play football, eat rice" ]
+    test = ["পিজ্জার টুকরোতে কি ", "কি কোনো ব্রোকলি", "কোনো ব্রোকলি আছে" ]
 
     vocab = Vocabulary()
-    seq = vocab.build(test)
-    print(seq)
+    vector = load_glove_model("/home/workstaion/workspace/potatochips/vqa/bn_glove.39M.300d.txt")
+
+    seq = vocab.get_sequences(test,vector)
+
+    for s in seq:
+        print(s)
+        print()
