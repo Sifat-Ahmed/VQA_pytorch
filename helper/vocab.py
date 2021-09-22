@@ -2,7 +2,7 @@ from .preprocessing import process_answer, process_sentence, load_glove_model
 from bnlp import BasicTokenizer
 from collections import defaultdict
 from tqdm import tqdm
-
+import numpy as np
 
 class Vocabulary:
     def __init__(self, maxlen = 30, min_frequency = 3, padding = "post"):
@@ -41,15 +41,15 @@ class Vocabulary:
         for word in self._tokenize(text):
             if self._vector:
                 try:
-                    sequence.append(list(self._vector[word]))
+                    sequence.append(np.array(self._vector[word]))
                 except:
                     pass
                 finally:
-                    sequence.append(list([0.0] * 300))
+                    sequence.append(np.array([0.0] * 300))
             else:
                 sequence.append(self._vocabulary[word])
 
-        return sequence
+        return np.array(sequence)
 
 
     def transform(self):
@@ -63,7 +63,7 @@ class Vocabulary:
 
 
         for data in tqdm(self._text_data, leave=True, position=0, colour = "blue", desc="Converting text to sequence"):
-            padded = [0.0] * self._maxlen
+            padded = np.array([[0.0] * 300] * self._maxlen)
             seq = self._transform_to_sequence(data)
 
             if self._padding == "pre":
@@ -76,9 +76,9 @@ class Vocabulary:
                 for i in range(-1, -len(seq)-1, -1):
                     padded[i] = seq[i]
 
-            self._sequences.append(padded)
+            self._sequences.append(np.array(padded))
 
-        return self._sequences
+        return np.array(self._sequences)
 
 
 if __name__ == "__main__":
@@ -89,6 +89,3 @@ if __name__ == "__main__":
 
     seq = vocab.get_sequences(test,vector)
 
-    for s in seq:
-        print(s)
-        print()

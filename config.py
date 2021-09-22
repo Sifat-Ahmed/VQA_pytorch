@@ -8,7 +8,7 @@ from albumentations.pytorch import ToTensorV2
 class Config:
     def __init__(self):
         
-        self.batch_size = 96
+        self.batch_size = 24
         self.epochs = 500
         self.shuffle = True
         self.resize = True
@@ -17,7 +17,7 @@ class Config:
         self.num_workers = 4
         self.pin_memory = True
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
+        self.non_blocking = True
         
         self.learning_rate = 0.001
         self.classification_threshold = 0.75
@@ -28,7 +28,7 @@ class Config:
         
         ## Dataset
         self.number_of_data = 10000
-        self.validation_size = 0.1
+        self.validation_size = 0.15
         self.test_size = 0.1
         
         ## All paths 

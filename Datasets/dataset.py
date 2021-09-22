@@ -36,5 +36,5 @@ class LoadDataset(Dataset):
 
         return torch.tensor(text, dtype=torch.float32), \
                image, \
-               torch.tensor(label, dtype=torch.float32)
+               torch.tensor(label, dtype=torch.long)
     
