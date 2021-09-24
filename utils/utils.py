@@ -39,7 +39,7 @@ class MetricMonitor:
         return self.metrics[metric_name]['avg']
 
 
-def calculate_accuracy(output, target):
-    output = torch.sigmoid(output) >= 0.5
+def calculate_accuracy(output, target, threshold = 0.5):
+    output = (output) >= threshold
     target = target == 1.0
     return torch.true_divide((target == output).sum(dim=0), output.size(0)).item()

@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import absolute_import
 
 
-import os
+import os, gc
 from collections import defaultdict
 import numpy as np
 from config import Config
@@ -25,6 +25,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 import torch.backends.cudnn as cudnn
 cudnn.benchmark = True
+
 
 
 def train(cfg,
@@ -74,7 +75,7 @@ def train(cfg,
 
         # correct = (y_pred == ans).float()
         # run_acc = (correct.sum() / len(correct)).item()
-        acc = calculate_accuracy(output, ans)
+        acc = calculate_accuracy(output, ans, cfg.classification_threshold)
 
 
         metric_monitor.update("Loss", loss.item())
@@ -87,7 +88,7 @@ def train(cfg,
 
     return metric_monitor
 
-
+@torch.no_grad()
 def validation(cfg,
           epoch,
           validation_dloader,
@@ -114,9 +115,11 @@ def validation(cfg,
         # _, y_pred = torch.max(output, 1)
 
         loss = criterion(output, ans)
-        acc = calculate_accuracy(output, ans)
+        acc = calculate_accuracy(output, ans, cfg.classification_threshold)
         # correct=(y_pred==ans).float()
         # acc = (correct.sum()/len(correct)).item()
+
+        #print(output)
 
         metric_monitor.update("Loss", loss)
         metric_monitor.update("Accuracy", acc)
@@ -124,7 +127,7 @@ def validation(cfg,
             "Epoch: {epoch}. Validation. {metric_monitor}".format(epoch=epoch, metric_monitor=metric_monitor)
         )
 
-        return metric_monitor
+    return metric_monitor
 
 
 def main():
@@ -142,17 +145,20 @@ def main():
 
 
     ## Build a vocabulary and get the sequences
-    glove_bengali = load_glove_model(cfg.glove_path)
+    #glove_bengali = load_glove_model(cfg.glove_path)
     ## Creating a vocabulary object reference
-    vocab_builder = Vocabulary()
+    vocab_builder = Vocabulary(maxlen=cfg.max_len)
     ## building the vocabulary and transforming into sequence
-    sequences = vocab_builder.get_sequences(question, glove_bengali)
+    sequences = vocab_builder.get_sequences(question)
 
+    vocab_size = vocab_builder.vocab_size()
 
     ## creating a training and validation set
     ## size is defined in the config
     train_ques, val_ques, train_img, val_img, train_ans, val_ans = train_test_split(sequences, image, answer,
-                                                                                   test_size=cfg.validation_size, stratify=answer)
+                                                                                   test_size=cfg.validation_size,
+                                                                                    stratify=answer,
+                                                                                    shuffle=True)
 
     ## from the remaining training data, creating a test set
     # size is defined in the config file
@@ -161,29 +167,29 @@ def main():
 
 
     #creating dataset object
-    training_dataset = LoadDataset(cfg, train_ques, train_img, train_ans, mode = "train")
-    validation_dataset = LoadDataset(cfg, val_ques, val_img, val_ans, mode = "train")
+    training_dataset = LoadDataset(cfg, train_ques, train_img, train_ans, mode = "train", transform=cfg.train_transform)
+    validation_dataset = LoadDataset(cfg, val_ques, val_img, val_ans, mode = "train", transform=cfg.transform)
     # test_dataset = LoadDataset(cfg, test_ques, test_img, test_ans, mode = "train")
 
 
     ## creating data Loaders
     training_dloader = DataLoader(training_dataset,
-                                  batch_size=cfg.batch_size,
+                                  batch_size=cfg.train_batch_size,
                                   shuffle = cfg.shuffle,
                                   num_workers=cfg.num_workers,
                                   pin_memory = cfg.pin_memory)
 
     validation_dloader = DataLoader(validation_dataset,
-                                  batch_size=cfg.batch_size,
+                                  batch_size=cfg.val_batch_size,
                                   shuffle=cfg.shuffle,
                                   num_workers=cfg.num_workers,
                                   pin_memory=cfg.pin_memory)
 
 
 
-    vision_model = ResNet50().to(cfg.device)
-    nlp_model = LSTM().to(cfg.device)
-    attention_model = AttentionNet().to(cfg.device)
+    vision_model = ResNet50(out_features=cfg.vector_size).to(cfg.device)
+    nlp_model = LSTM(vocab_size=vocab_size, out_features=cfg.vector_size).to(cfg.device)
+    attention_model = AttentionNet(input_features=cfg.vector_size).to(cfg.device)
 
     optimizer_parameter_group = [{'params': nlp_model.parameters()},
                                   {'params': vision_model.parameters()},
@@ -201,7 +207,7 @@ def main():
 
     BEST_LOSS = np.inf
 
-    for epoch in range(0, 20):
+    for epoch in range(1, cfg.epochs+1):
         train_hist = train(cfg, epoch, training_dloader, vision_model, nlp_model, attention_model, criterion, optimizer)
         history['train_loss'].append(train_hist.get('Loss'))
         history['train_acc'].append(train_hist.get('Accuracy'))
@@ -214,6 +220,8 @@ def main():
         history['val_loss'].append(test_hist.get('Loss'))
         history['val_acc'].append(test_hist.get('Accuracy'))
 
+        torch.cuda.empty_cache()
+        gc.collect()
 
 if __name__ == "__main__":
     main()

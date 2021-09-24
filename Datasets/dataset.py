@@ -7,13 +7,14 @@ import torch
 from torch.utils.data import Dataset
 
 class LoadDataset(Dataset):
-    def __init__(self, cfg, text, image, label, mode) -> None:
+    def __init__(self, cfg, text, image, label, mode, transform = None) -> None:
 
         self._cfg = cfg
         self._text = text
         self._image = image
         self._label = label
         self._mode = mode
+        self._transform = transform
         
         assert len(self._text) == len(self._image) and len(self._image) == len(self._label), "number of text, image and labels are not same"
         assert self._mode == "train" or self._mode == "test", "The value of mode is not correct (train/test)"
@@ -31,10 +32,10 @@ class LoadDataset(Dataset):
         if self._cfg.resize:
             image = cv2.resize(image, self._cfg.image_size)
 
-        if self._cfg.transform:
-            image = self._cfg.transform(image=image)["image"]
+        if self._transform:
+            image = self._transform(image=image)["image"]
 
-        return torch.tensor(text, dtype=torch.float32), \
+        return torch.tensor(text, dtype=torch.long), \
                image, \
                torch.tensor(label, dtype=torch.long)
     
