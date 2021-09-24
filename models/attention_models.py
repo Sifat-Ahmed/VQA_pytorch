@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class AttentionNet(nn.Module):
-    def __init__(self, input_features = 100, output_features = 50, num_classes = 1):
+    def __init__(self, input_features = 10, output_features = 50, num_classes = 1):
         super(AttentionNet, self).__init__()
         self._input_features = input_features
         self._output_features = output_features  # k

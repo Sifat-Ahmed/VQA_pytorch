@@ -5,7 +5,7 @@ from tqdm import tqdm
 import numpy as np
 
 class Vocabulary:
-    def __init__(self, maxlen = 30, min_frequency = 3, padding = "post"):
+    def __init__(self, maxlen = 10, min_frequency = 3, padding = "post"):
         self._maxlen = maxlen
         self._min_frequency = min_frequency
         self._tokenizer = BasicTokenizer()
@@ -26,15 +26,20 @@ class Vocabulary:
             tokenized = self._tokenize(data)
 
             for word in tokenized:
+                self._unique_words.append(word)
                 if word not in self._vocabulary.keys():
                     self._vocabulary[word] = word_index
-                    self._unique_words.append(word)
+
                     word_index += 1
 
                 if word not in self._word_counts.keys():
                     self._word_counts[word] = 1
                 else: self._word_counts[word] += 1
 
+        self._unique_words = set(self._unique_words)
+
+    def vocab_size(self):
+        return len(self._unique_words) + 100
 
     def _transform_to_sequence(self, text):
         sequence = list()
@@ -49,22 +54,24 @@ class Vocabulary:
             else:
                 sequence.append(self._vocabulary[word])
 
-        return np.array(sequence)
 
+        return np.array(sequence), len(sequence)
 
     def transform(self):
         pass
 
-    def get_sequences(self, text_data, vector = None):
+    def get_sequences(self, text_data, vector = None, return_length = False):
         self._text_data = text_data
         self._build_vocab()
         self._sequences = list()
+        self._lengths = list()
         self._vector = vector
 
 
         for data in tqdm(self._text_data, leave=True, position=0, colour = "blue", desc="Converting text to sequence"):
-            padded = np.array([[0.0] * 300] * self._maxlen)
-            seq = self._transform_to_sequence(data)
+            padded = np.array([[0.0] * 300] * self._maxlen) if self._vector else np.array([0.0] * self._maxlen)
+
+            seq, length = self._transform_to_sequence(data)
 
             if self._padding == "pre":
                 if len(seq) >= self._maxlen: seq = seq[:self._maxlen]
@@ -85,7 +92,10 @@ if __name__ == "__main__":
     test = ["পিজ্জার টুকরোতে কি ", "কি কোনো ব্রোকলি", "কোনো ব্রোকলি আছে" ]
 
     vocab = Vocabulary()
-    vector = load_glove_model("/home/workstaion/workspace/potatochips/vqa/bn_glove.39M.300d.txt")
+    #vector = load_glove_model("/home/workstaion/workspace/potatochips/vqa/bn_glove.39M.300d.txt")
 
-    seq = vocab.get_sequences(test,vector)
+    seq = vocab.get_sequences(test)
+
+    for s in seq:
+        print(s)
 
