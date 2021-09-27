@@ -73,13 +73,12 @@ class WordAttnNet(nn.Module):
         self,
         vocab_size,
         hidden_dim=32,
-        padding_idx=1,
         embed_dim=50,
         embedding_matrix=None,
     ):
         super(WordAttnNet, self).__init__()
 
-        self.word_embed = nn.Embedding(vocab_size, embed_dim, padding_idx=padding_idx)
+        self.word_embed = nn.Embedding(vocab_size, embed_dim)
         self.rnn = nn.GRU(embed_dim, hidden_dim, bidirectional=True, batch_first=True)
         self.word_attn = AttentionWithContext(hidden_dim * 2)
 
@@ -92,7 +91,7 @@ class WordAttnNet(nn.Module):
 
 class SentAttnNet(nn.Module):
     def __init__(
-            self, word_hidden_dim=32, sent_hidden_dim=32, padding_idx=1
+            self, word_hidden_dim=32, sent_hidden_dim=32,
     ):
         super(SentAttnNet, self).__init__()
 
@@ -114,7 +113,6 @@ class HierAttnNet(nn.Module):
         maxlen_doc,
         word_hidden_dim=32,
         sent_hidden_dim=32,
-        padding_idx=1,
         embed_dim=50,
         embedding_matrix=None,
         num_class=4,
@@ -126,7 +124,6 @@ class HierAttnNet(nn.Module):
         self.wordattnnet = WordAttnNet(
             vocab_size=vocab_size,
             hidden_dim=word_hidden_dim,
-            padding_idx=padding_idx,
             embed_dim=embed_dim,
             embedding_matrix=embedding_matrix,
         )
@@ -134,15 +131,15 @@ class HierAttnNet(nn.Module):
         self.sentattnnet = SentAttnNet(
             word_hidden_dim=word_hidden_dim,
             sent_hidden_dim=sent_hidden_dim,
-            padding_idx=padding_idx,
         )
 
         self.fc = nn.Linear(sent_hidden_dim * 2, num_class)
 
     def forward(self, X):
+        #print(X.shape)
         x = X.permute(1, 0, 2)
         word_h_n = nn.init.zeros_(torch.Tensor(2, X.shape[0], self.word_hidden_dim))
-        if use_cuda:
+        if torch.cuda.is_available():
             word_h_n = word_h_n.cuda()
         # alpha and s Tensor Lists
         word_a_list, word_s_list = [], []

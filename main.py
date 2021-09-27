@@ -15,7 +15,7 @@ from helper.vocab import Vocabulary
 from sklearn.model_selection import train_test_split
 from models.nlp_models import LSTM
 from models.vision_models import ResNet50
-from models.attention_models import AttentionNet
+from models.attention_models import AttentionNet, HierAttnNet
 from utils.utils import MetricMonitor, calculate_accuracy
 
 from tqdm import tqdm
@@ -188,7 +188,8 @@ def main():
 
 
     vision_model = ResNet50(out_features=cfg.vector_size).to(cfg.device)
-    nlp_model = LSTM(vocab_size=vocab_size, out_features=cfg.vector_size).to(cfg.device)
+    nlp_model = HierAttnNet(vocab_size=vocab_size, maxlen_sent=20, maxlen_doc=1, sent_hidden_dim=100, word_hidden_dim=100,
+                        embed_dim=cfg.max_len, num_class=cfg.vector_size).to(cfg.device)
     attention_model = AttentionNet(input_features=cfg.vector_size).to(cfg.device)
 
     optimizer_parameter_group = [{'params': nlp_model.parameters()},

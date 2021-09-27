@@ -25,33 +25,3 @@ class LSTM(nn.Module):
         out = self._fc(hidden)
 
         return out
-
-class WordAttnNet(nn.Module):
-    def __init__(
-        self,
-        vocab_size,
-        hidden_dim=32,
-        padding_idx=1,
-        embed_dim=50,
-        embedding_matrix=None,
-    ):
-        super(WordAttnNet, self).__init__()
-
-        if isinstance(embedding_matrix, np.ndarray):
-            self.word_embed = nn.Embedding(
-                vocab_size, embedding_matrix.shape[1], padding_idx=padding_idx
-            )
-            self.word_embed.weight = nn.Parameter(torch.Tensor(embedding_matrix))
-            embed_dim = embedding_matrix.shape[1]
-        else:
-            self.word_embed = nn.Embedding(vocab_size, embed_dim, padding_idx=padding_idx)
-
-        self.rnn = nn.GRU(embed_dim, hidden_dim, bidirectional=True, batch_first=True)
-
-        self.word_attn = AttentionWithContext(hidden_dim * 2)
-
-    def forward(self, X, h_n):
-        embed = self.word_embed(X.long())
-        h_t, h_n = self.rnn(embed, h_n)
-        a, s = self.word_attn(h_t)
-        return a, s.unsqueeze(1), h_n

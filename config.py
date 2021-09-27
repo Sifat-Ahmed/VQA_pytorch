@@ -8,10 +8,10 @@ from albumentations.pytorch import ToTensorV2
 class Config:
     def __init__(self):
         
-        self.train_batch_size = 16
+        self.train_batch_size = 32
         self.val_batch_size = 4
 
-        self.epochs = 20
+        self.epochs = 50
         self.shuffle = True
         self.resize = True
         self.image_size = (448, 448)
@@ -24,8 +24,8 @@ class Config:
         self.learning_rate = 0.001
         self.classification_threshold = 0.5
 
-        self.max_len = 10
-        self.vector_size = 100
+        self.max_len = 300
+        self.vector_size = 1
 
 
         self.bGlove = BengaliGlove()

@@ -35,7 +35,7 @@ class LoadDataset(Dataset):
         if self._transform:
             image = self._transform(image=image)["image"]
 
-        return torch.tensor(text, dtype=torch.long), \
+        return torch.tensor(text, dtype=torch.long).unsqueeze(0), \
                image, \
                torch.tensor(label, dtype=torch.long)
     

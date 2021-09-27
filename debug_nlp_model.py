@@ -7,6 +7,7 @@ from tqdm import tqdm
 
 from config import Config
 from models.nlp_models import LSTM
+from models.attention_models import HierAttnNet
 from helper.vocab import Vocabulary
 from helper.preprocessing import process_answer, load_glove_model, load_bangla_word2vec, process_sentence
 from utils.utils import MetricMonitor, calculate_accuracy
@@ -31,7 +32,7 @@ class TextDataset(Dataset):
     def __getitem__(self, index):
         text = self._text[index]
         label = self._label[index]
-        return torch.tensor(text, dtype=torch.long), torch.tensor(label, dtype=torch.float32)
+        return torch.tensor(text, dtype=torch.long).unsqueeze(0), torch.tensor(label, dtype=torch.float32)
 
 def parse_dataset(csv_path):
     df = pd.read_csv(csv_path, sep=',')
@@ -43,8 +44,7 @@ def parse_dataset(csv_path):
         txt = df.loc[i, 'Review']
         lbl = df.loc[i, 'Rating']
         words = [word for word in word_tokenize(txt) if word.isalpha()]
-        if len(words) > 1000:
-            continue
+
         txt = " ".join(words)
         lbl = 1 if lbl > 3 else 0
 
@@ -141,7 +141,7 @@ if __name__  == "__main__":
 
     cfg = Config()
 
-    vocab = Vocabulary(maxlen=1000)
+    vocab = Vocabulary(maxlen=cfg.max_len)
     text_seq = vocab.get_sequences(text)
     vocab_size = vocab.vocab_size()
 
@@ -152,11 +152,15 @@ if __name__  == "__main__":
     train_dataset = TextDataset(x_train, y_train)
     val_dataset = TextDataset(x_test, y_test)
 
-    train_loader = DataLoader(train_dataset, shuffle=cfg.shuffle, batch_size=cfg.batch_size)
-    val_loader = DataLoader(val_dataset, shuffle=cfg.shuffle, batch_size=cfg.batch_size)
+    train_loader = DataLoader(train_dataset, shuffle=cfg.shuffle, batch_size=cfg.train_batch_size)
+    val_loader = DataLoader(val_dataset, shuffle=cfg.shuffle, batch_size=cfg.val_batch_size)
 
 
-    model = LSTM(out_features=1, vocab_size=vocab_size).to(cfg.device)
+    #model = LSTM(out_features=1, vocab_size=vocab_size).to(cfg.device)
+
+    model = HierAttnNet(vocab_size=vocab_size, maxlen_sent=20, maxlen_doc=1, sent_hidden_dim=100, word_hidden_dim=50,
+                        embed_dim=cfg.max_len, num_class=1).to(cfg.device)
+
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.learning_rate)
     criterion = nn.BCEWithLogitsLoss().to(cfg.device)
 

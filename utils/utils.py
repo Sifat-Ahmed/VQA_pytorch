@@ -43,3 +43,4 @@ def calculate_accuracy(output, target, threshold = 0.5):
     output = (output) >= threshold
     target = target == 1.0
     return torch.true_divide((target == output).sum(dim=0), output.size(0)).item()
+
