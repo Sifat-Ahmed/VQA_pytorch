@@ -47,3 +47,21 @@ class AttentionNet(nn.Module):
         # print('W_u shape:  ',w_u.shape)
 
         return w_u
+
+class AttentionWithContext(nn.Module):
+    def __init__(self, hidden_dim):
+        super(AttentionWithContext, self).__init__()
+
+        self.attn = nn.Linear(hidden_dim, hidden_dim)
+        self.contx = nn.Linear(hidden_dim, 1, bias=False)
+
+    def forward(self, inp):
+        # The first expression in the attention mechanism is simply a linear layer that receives
+        # the output of the Word-GRU referred here as 'inp' and h_{it} in the paper
+        u = torch.tanh_(self.attn(inp))
+        # The second expression is...the same but without bias, wrapped up in a Softmax function
+        a = F.softmax(self.contx(u), dim=1)
+        # And finally, an element-wise multiplication taking advantage of Pytorch's broadcasting abilities
+        s = (a * inp).sum(1)
+        # we will also return the normalized importance weights
+        return a.permute(0, 2, 1), s

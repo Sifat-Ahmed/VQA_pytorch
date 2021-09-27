@@ -33,7 +33,7 @@ class ParseJson:
             for a in self._json_dataset:
 
                 self._answers.append(a['Answer.Column1'])
-                self._questions.append(a['Questions in English'])
+                self._questions.append(a['Questions In Bangla'])
                 self._images.append(str(a['Answer.image_id']))
 
 

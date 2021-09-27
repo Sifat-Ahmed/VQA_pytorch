@@ -10,6 +10,7 @@ class Vocabulary:
         self._min_frequency = min_frequency
         self._tokenizer = BasicTokenizer()
         self._vocabulary = defaultdict()
+        self._words = list()
         self._unique_words = list()
         self._word_counts = defaultdict()
         self._padding = padding
@@ -26,7 +27,7 @@ class Vocabulary:
             tokenized = self._tokenize(data)
 
             for word in tokenized:
-                self._unique_words.append(word)
+                self._words.append(word)
                 if word not in self._vocabulary.keys():
                     self._vocabulary[word] = word_index
 
@@ -36,10 +37,14 @@ class Vocabulary:
                     self._word_counts[word] = 1
                 else: self._word_counts[word] += 1
 
-        self._unique_words = set(self._unique_words)
+        self._unique_words = set(self._words)
 
     def vocab_size(self):
-        return len(self._unique_words) + 100
+        return len(self._unique_words) + 1
+
+    def get_word_counts(self):
+        return np.unique(self._words, return_counts=True)
+
 
     def _transform_to_sequence(self, text):
         sequence = list()
