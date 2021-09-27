@@ -67,22 +67,6 @@ class AttentionWithContext(nn.Module):
         # we will also return the normalized importance weights
         return a.permute(0, 2, 1), s
 
-class SentAttnNet(nn.Module):
-    def __init__(
-            self, word_hidden_dim=32, sent_hidden_dim=32, padding_idx=1
-    ):
-        super(SentAttnNet, self).__init__()
-
-        self.rnn = nn.GRU(
-            word_hidden_dim * 2, sent_hidden_dim, bidirectional=True, batch_first=True
-        )
-
-        self.sent_attn = AttentionWithContext(sent_hidden_dim * 2)
-
-    def forward(self, X):
-        h_t, h_n = self.rnn(X)
-        a, v = self.sent_attn(h_t)
-        return a.permute(0, 2, 1), v
 
 class WordAttnNet(nn.Module):
     def __init__(
@@ -95,17 +79,8 @@ class WordAttnNet(nn.Module):
     ):
         super(WordAttnNet, self).__init__()
 
-        if isinstance(embedding_matrix, np.ndarray):
-            self.word_embed = nn.Embedding(
-                vocab_size, embedding_matrix.shape[1], padding_idx=padding_idx
-            )
-            self.word_embed.weight = nn.Parameter(torch.Tensor(embedding_matrix))
-            embed_dim = embedding_matrix.shape[1]
-        else:
-            self.word_embed = nn.Embedding(vocab_size, embed_dim, padding_idx=padding_idx)
-
+        self.word_embed = nn.Embedding(vocab_size, embed_dim, padding_idx=padding_idx)
         self.rnn = nn.GRU(embed_dim, hidden_dim, bidirectional=True, batch_first=True)
-
         self.word_attn = AttentionWithContext(hidden_dim * 2)
 
     def forward(self, X, h_n):
@@ -113,3 +88,72 @@ class WordAttnNet(nn.Module):
         h_t, h_n = self.rnn(embed, h_n)
         a, s = self.word_attn(h_t)
         return a, s.unsqueeze(1), h_n
+
+
+class SentAttnNet(nn.Module):
+    def __init__(
+            self, word_hidden_dim=32, sent_hidden_dim=32, padding_idx=1
+    ):
+        super(SentAttnNet, self).__init__()
+
+        self.rnn = nn.GRU(
+            word_hidden_dim * 2, sent_hidden_dim, bidirectional=True, batch_first=True
+        )
+        self.sent_attn = AttentionWithContext(sent_hidden_dim * 2)
+
+    def forward(self, X):
+        h_t, h_n = self.rnn(X)
+        a, v = self.sent_attn(h_t)
+        return a.permute(0, 2, 1), v
+
+class HierAttnNet(nn.Module):
+    def __init__(
+        self,
+        vocab_size,
+        maxlen_sent,
+        maxlen_doc,
+        word_hidden_dim=32,
+        sent_hidden_dim=32,
+        padding_idx=1,
+        embed_dim=50,
+        embedding_matrix=None,
+        num_class=4,
+    ):
+        super(HierAttnNet, self).__init__()
+
+        self.word_hidden_dim = word_hidden_dim
+
+        self.wordattnnet = WordAttnNet(
+            vocab_size=vocab_size,
+            hidden_dim=word_hidden_dim,
+            padding_idx=padding_idx,
+            embed_dim=embed_dim,
+            embedding_matrix=embedding_matrix,
+        )
+
+        self.sentattnnet = SentAttnNet(
+            word_hidden_dim=word_hidden_dim,
+            sent_hidden_dim=sent_hidden_dim,
+            padding_idx=padding_idx,
+        )
+
+        self.fc = nn.Linear(sent_hidden_dim * 2, num_class)
+
+    def forward(self, X):
+        x = X.permute(1, 0, 2)
+        word_h_n = nn.init.zeros_(torch.Tensor(2, X.shape[0], self.word_hidden_dim))
+        if use_cuda:
+            word_h_n = word_h_n.cuda()
+        # alpha and s Tensor Lists
+        word_a_list, word_s_list = [], []
+        for sent in x:
+            word_a, word_s, word_h_n = self.wordattnnet(sent, word_h_n)
+            word_a_list.append(word_a)
+            word_s_list.append(word_s)
+        # Importance attention weights per word in sentence
+        self.sent_a = torch.cat(word_a_list, 1)
+        # Sentences representation
+        sent_s = torch.cat(word_s_list, 1)
+        # Importance attention weights per sentence in doc and document representation
+        self.doc_a, doc_s = self.sentattnnet(sent_s)
+        return self.fc(doc_s)
