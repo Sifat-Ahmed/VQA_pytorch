@@ -8,7 +8,7 @@ from albumentations.pytorch import ToTensorV2
 class Config:
     def __init__(self):
         
-        self.train_batch_size = 32
+        self.train_batch_size = 16
         self.val_batch_size = 4
 
         self.epochs = 50
@@ -33,7 +33,7 @@ class Config:
         
         ## Dataset
         self.number_of_data = 10000
-        self.validation_size = 0.2
+        self.validation_size = 0.15
         self.test_size = 0.1
         
         ## All paths 
