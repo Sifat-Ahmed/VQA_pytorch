@@ -3,4 +3,4 @@ import torch.nn as nn
 import torchvision.models as models
 
 def ResNet50(out_features = 10):
-    return getattr(models, "resnet18")(pretrained=False, num_classes = out_features)
+    return getattr(models, "resnet50")(pretrained=False, num_classes = out_features)
